@@ -3,10 +3,14 @@ use std::{io::Read, print};
 use std::io::{self, Write};
 
 fn main() {
-    print!("$ ");
-    io::stdout().flush().unwrap(); // uses flush to ensure the prompt is displayed before reading input
-    let mut command = String::new();
-    io::stdin().read_line(&mut command).unwrap();
-    println!("{}: command not found", command.trim());
+
+    loop {
+        print!("$ ");
+        io::stdout().flush().unwrap(); // uses flush to ensure the prompt is displayed before reading input
+        let mut command = String::new();
+        io::stdin().read_line(&mut command).unwrap();
+        println!("{}: command not found", command.trim());        
+    }
+
 
 }
