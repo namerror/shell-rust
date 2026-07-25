@@ -17,7 +17,7 @@ fn main() {
         io::stdin().read_line(&mut command).unwrap();
 
         let command = command.trim();
-        let builtins = ["exit", "echo", "type"];
+        let builtins = ["exit", "echo", "type", "pwd"];
 
         let args: Vec<&str> = command.split(' ').collect();
 
@@ -35,6 +35,8 @@ fn main() {
                     Err(_error) => println!("{}: not found", &args[1]),
                 };
             }
+        } else if command == "pwd" {
+            println!("{}", env::current_dir().unwrap().into_os_string().into_string().unwrap());
         } else if find_executable(paths, &args[0]).is_ok() {
             Command::new(&args[0]).args(&args[1..]).status().unwrap();
         } else {
