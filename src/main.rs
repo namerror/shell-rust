@@ -1,4 +1,3 @@
-use core::error;
 use std::fs::metadata;
 use std::io::Error;
 #[allow(unused_imports)]
@@ -6,7 +5,7 @@ use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::{print};
 use std::{env, fs};
-
+use std::process::Command;
 
 fn main() {
     loop {
@@ -36,6 +35,8 @@ fn main() {
                     Err(_error) => println!("{}: not found", &args[1]),
                 };
             }
+        } else if find_executable(paths, &args[0]).is_ok() {
+            Command::new(&args[0]).args(&args[1..]).status().unwrap();
         } else {
             println!("{}: command not found", command);
         }
