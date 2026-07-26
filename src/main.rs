@@ -4,7 +4,7 @@ use std::io::Error;
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
-use std::{print};
+use std::{print, string};
 use std::{env, fs};
 use std::process::Command;
 
@@ -21,12 +21,13 @@ fn main() {
         let command = command.trim();
         let builtins = ["exit", "echo", "type", "pwd", "cd"];
 
-        let args: Vec<&str> = command.split(' ').collect();
+        let string_args = parse_args(&command);
+        let args = string_args.iter().map(|s| s.as_str()).collect::<Vec<&str>>();
 
         match args[0] {
             "" => continue,
             "exit" => break,
-            "echo" => println!("{}", &command[5..]),
+            "echo" => handle_echo(&args),
             "type" => handle_type(&args, &paths, &builtins),
             "pwd" => println!("{}", dir.clone().into_os_string().into_string().unwrap()),
             "cd" => match cd(&args, &mut dir) {
@@ -106,3 +107,62 @@ fn resolve_path(rel_path: &str, dir: PathBuf) -> PathBuf {
         dir.join(rel_path)
     }
 } 
+
+fn parse_args(command: &str) -> Vec<String> {
+    let mut args: Vec<String> = Vec::new();
+
+    let mut in_single_quote = false;
+    let mut string_buf: String= "".to_owned(); // used to construct current arg
+    let mut quote: String = "".to_owned();
+    let mut is_prev_quote = false;
+
+
+    for c in command.chars() {
+        if in_single_quote {
+            if c == '\'' {
+                in_single_quote = false;
+                is_prev_quote = true
+            } else {
+                quote.push(c);
+            }
+        } else {
+            if c == '\'' {
+                in_single_quote = true
+            } else if is_prev_quote {
+                if &quote != "" {
+                    string_buf.push_str(&quote);
+                    let arg = string_buf.clone();
+                    args.push(arg);
+                    string_buf = "".to_owned();                
+                } 
+                is_prev_quote = false;
+                quote = "".to_owned();
+                if c == ' ' {
+                    continue;
+                }
+                string_buf.push(c);
+            } else if c == ' '{
+                if !string_buf.is_empty() {
+                    args.push(string_buf.clone());
+                    string_buf = "".to_owned();
+                }               
+            } else {
+                string_buf.push(c);
+            }
+        }
+    }
+    string_buf.push_str(&quote);
+    args.push(string_buf.clone());
+
+    return args
+}
+
+fn handle_echo(args: &Vec<&str>) {
+    // println!("args: {:?}", args);
+    if args.len() < 2 {
+        println!();
+        return;
+    }
+    let message = args[1..].join(" ");
+    println!("{}", message);
+}
