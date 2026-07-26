@@ -4,7 +4,6 @@ use std::io::Error;
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
-use std::path::Path;
 use std::{print};
 use std::{env, fs};
 use std::process::Command;
@@ -24,32 +23,42 @@ fn main() {
 
         let args: Vec<&str> = command.split(' ').collect();
 
-        if command == "exit" {
-            break;
-        } else if command.starts_with("echo") {
-            println!("{}", &command[5..]);
-        } else if command.starts_with("type") {
-
-            if builtins.contains(&args[1]) {
-                println!("{} is a shell builtin", &args[1]);
-            } else {
-                match find_executable(&paths, &args[1]) {
-                    Ok(v) => println!("{} is {}", &args[1], v),
-                    Err(_error) => println!("{}: not found", &args[1]),
-                };
-            }
-        } else if command == "pwd" {
-            println!("{}", dir.clone().into_os_string().into_string().unwrap());
-        } else if args[0] == "cd" {
-            match cd(&args, &mut dir) {
+        match args[0] {
+            "" => continue,
+            "exit" => break,
+            "echo" => println!("{}", &command[5..]),
+            "type" => handle_type(&args, &paths, &builtins),
+            "pwd" => println!("{}", dir.clone().into_os_string().into_string().unwrap()),
+            "cd" => match cd(&args, &mut dir) {
                 Ok(()) => (),
                 Err(_e) => println!("cd: {}: No such file or directory", &args[1])
+            },
+            _ => {
+                if find_executable(&paths, &args[0]).is_ok() {
+                    Command::new(&args[0]).args(&args[1..]).status().unwrap();
+                } else {
+                    println!("{}: command not found", command);
+                }
             }
-        } else if find_executable(&paths, &args[0]).is_ok() {
-            Command::new(&args[0]).args(&args[1..]).status().unwrap();
-        } else {
-            println!("{}: command not found", command);
         }
+    }
+}
+
+fn handle_type(args: &Vec<&str>, paths: &Vec<&str>, builtins: &[&str]) {
+    if args.len() != 2 {
+        println!("type: wrong args count.");
+        return;
+    }
+
+    let command = args[1];
+
+    if builtins.contains(&command) {
+        println!("{} is a shell builtin", command);
+    } else {
+        match find_executable(paths, command) {
+            Ok(v) => println!("{} is {}", command, v),
+            Err(_error) => println!("{}: not found", command),
+        };
     }
 }
 
