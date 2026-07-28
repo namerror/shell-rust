@@ -3,9 +3,8 @@ use std::io::Error;
 #[allow(unused_imports)]
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
-use std::os::unix::raw::ino_t;
 use std::path::PathBuf;
-use std::{print, string};
+use std::{print};
 use std::{env, fs};
 use std::process::Command;
 
