@@ -131,7 +131,11 @@ fn parse_args(command: &str) -> Vec<String> {
                 }
             }
             '\\' => {
-                escaped = true;
+                if !in_single_quote {
+                    escaped = true;
+                } else {
+                    string_buf.push(c);
+                }
             }
             '"' => {
                 if !in_single_quote {
