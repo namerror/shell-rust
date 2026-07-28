@@ -114,8 +114,14 @@ fn parse_args(command: &str) -> Vec<String> {
     let mut in_single_quote = false;
     let mut in_double_quote = false;
     let mut string_buf: String= "".to_owned(); // used to construct current arg
+    let mut escaped = false; // if the current character should be escaped
 
     for c in command.chars() {
+        if escaped {
+            string_buf.push(c);
+            escaped = false;
+            continue;
+        }
         match c {
             '\'' => {
                 if !in_double_quote {
@@ -123,6 +129,9 @@ fn parse_args(command: &str) -> Vec<String> {
                 } else {
                     string_buf.push(c);
                 }
+            }
+            '\\' => {
+                escaped = true;
             }
             '"' => {
                 if !in_single_quote {
