@@ -65,3 +65,7 @@ pub fn cd(args: &Vec<&str>, dir: &mut PathBuf) -> Result<(), Error> {
         }
     }
 }
+
+pub fn jobs() {
+    return // TODO
+}

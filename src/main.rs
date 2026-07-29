@@ -90,6 +90,7 @@ fn main() -> io::Result<()> {
                 Ok(()) => (),
                 Err(_e) => println!("cd: {}: No such file or directory", &args[1]),
             },
+            "jobs" => commands::jobs(),
             _ => commands::unknown(&args, &paths, &mut stdout_buf, &mut stderr_buf),
         };
 
