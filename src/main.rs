@@ -11,6 +11,11 @@ enum Stdout {
     File(File),
 }
 
+enum Stderr {
+    Stderr(io::Stderr),
+    File(File),
+}
+
 fn main() -> io::Result<()> {
     let path = env::var("PATH").unwrap();
     let paths: Vec<&str> = path.split(":").collect();
@@ -31,7 +36,9 @@ fn main() -> io::Result<()> {
             .collect::<Vec<&str>>();
 
         let mut stdout_buf = "".to_string();
+        let mut stderr_buf = "".to_string();
         let stdout = Stdout::Stdout(io::stdout());
+        let stderr = Stderr::Stderr(io::stderr());
 
         if args.len() == 0 {
             continue;
@@ -49,6 +56,18 @@ fn main() -> io::Result<()> {
             stdout
         };
 
+        let stderr = if args.len() >= 3 {
+            if args[args.len() - 2] == "2>" {
+                let file_path = utils::resolve_path(args[args.len() - 1], dir.clone());
+                args.truncate(args.len() - 2); // remove the last two args ("2>" and the file path)
+                Stderr::File(File::create(file_path)?)
+            } else {
+                stderr
+            }
+        } else {
+            stderr
+        };
+
         match args[0] {
             "" => continue,
             "exit" => break,
@@ -61,19 +80,29 @@ fn main() -> io::Result<()> {
                 Ok(()) => (),
                 Err(_e) => println!("cd: {}: No such file or directory", &args[1]),
             },
-            _ => commands::unknown(&args, &paths, &mut stdout_buf),
+            _ => commands::unknown(&args, &paths, &mut stdout_buf, &mut stderr_buf),
         };
 
-        if stdout_buf.is_empty() {
-            continue;
-        }
-        match stdout {
-            Stdout::Stdout(mut _out) => {
-                print!("{}", stdout_buf);
-                io::stdout().flush()?;
+        if !stdout_buf.is_empty() {
+            match stdout {
+                Stdout::Stdout(mut _out) => {
+                    print!("{}", stdout_buf);
+                    io::stdout().flush()?;
+                }
+                Stdout::File(mut file) => {
+                    write!(file, "{}", stdout_buf)?;
+                }
             }
-            Stdout::File(mut file) => {
-                write!(file, "{}", stdout_buf)?;
+        }
+        if !stderr_buf.is_empty() {
+            match stderr {
+                Stderr::Stderr(mut _err) => {
+                    eprint!("{}", stderr_buf);
+                    io::stderr().flush()?;
+                }
+                Stderr::File(mut file) => {
+                    write!(file, "{}", stderr_buf)?;
+                }
             }
         }
     }

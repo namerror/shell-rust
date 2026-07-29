@@ -31,7 +31,7 @@ pub fn echo(args: &Vec<&str>, stdout: &mut String) {
     *stdout = format!("{}\n", message);
 }
 
-pub fn unknown(args: &Vec<&str>, paths: &Vec<&str>, stdout: &mut String) {
+pub fn unknown(args: &Vec<&str>, paths: &Vec<&str>, stdout: &mut String, stderr: &mut String) {
     if find_executable(&paths, &args[0]).is_ok() {
         let output = Command::new(&args[0])
             .args(&args[1..])
@@ -39,13 +39,12 @@ pub fn unknown(args: &Vec<&str>, paths: &Vec<&str>, stdout: &mut String) {
             .expect("failed to execute command");
 
         if !output.stderr.is_empty() {
-            eprint!("{}", String::from_utf8_lossy(&output.stderr));
-            io::stderr().flush().unwrap();
+            *stderr = String::from_utf8_lossy(&output.stderr).into_owned();
         }
 
         *stdout = String::from_utf8_lossy(&output.stdout).into_owned();
     } else {
-        println!("{}: command not found", args[0]);
+        *stderr = format!("{}: command not found\n", args[0]);
     }
 }
 
