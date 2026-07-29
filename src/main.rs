@@ -1,5 +1,5 @@
 use std::env;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::{self, Write};
 use std::print;
 
@@ -45,10 +45,15 @@ fn main() -> io::Result<()> {
         }
 
         let stdout = if args.len() >= 3 {
-            if args[args.len() - 2] == ">" || args[args.len() - 2] == "1>" {
+            if args[args.len() - 2] == ">" || args[args.len() - 2] == "1>" || args[args.len() - 2] == ">>" || args[args.len() - 2] == "1>>" {
                 let file_path = utils::resolve_path(args[args.len() - 1], dir.clone());
+                let file = if args[args.len() - 2] == ">" || args[args.len() - 2] == "1>" {
+                    File::create(file_path)?
+                } else {
+                    OpenOptions::new().create(true).append(true).open(file_path)?
+                };
                 args.truncate(args.len() - 2); // remove the last two args (">" and the file path)
-                Stdout::File(File::create(file_path)?)
+                Stdout::File(file)
             } else {
                 stdout
             }
@@ -57,10 +62,15 @@ fn main() -> io::Result<()> {
         };
 
         let stderr = if args.len() >= 3 {
-            if args[args.len() - 2] == "2>" {
+            if args[args.len() - 2] == "2>" || args[args.len() - 2] == "2>>" {
                 let file_path = utils::resolve_path(args[args.len() - 1], dir.clone());
+                let file = if args[args.len() - 2] == "2>" {
+                    File::create(file_path)?
+                } else {
+                    OpenOptions::new().create(true).append(true).open(file_path)?
+                };
                 args.truncate(args.len() - 2); // remove the last two args ("2>" and the file path)
-                Stderr::File(File::create(file_path)?)
+                Stderr::File(file)
             } else {
                 stderr
             }
