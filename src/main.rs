@@ -27,7 +27,7 @@ fn main() -> io::Result<()> {
         io::stdin().read_line(&mut command).unwrap();
 
         let command = command.trim();
-        let builtins = ["exit", "echo", "type", "pwd", "cd"];
+        let builtins = ["exit", "echo", "type", "pwd", "cd", "jobs"];
 
         let string_args = utils::parse_args(&command);
         let mut args = string_args
