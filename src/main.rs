@@ -28,7 +28,6 @@ fn main() -> io::Result<()> {
 
     let mut jobs: Vec<Job> = Vec::new();
     let mut job_id_counter: u32 = 1;
-    let mut children: Vec<std::process::Child> = Vec::new(); // store the child processes
 
     let mut args = env::args();
     args.next(); // skip the first argument (the program name)
@@ -42,6 +41,7 @@ fn main() -> io::Result<()> {
 
     // main loop
     loop {
+
         print!("$ ");
         io::stdout().flush().unwrap(); // uses flush to ensure the prompt is displayed before reading input
         let mut command = String::new();
@@ -78,29 +78,25 @@ fn main() -> io::Result<()> {
 
             let job = Job {
                 id: job_id_counter,
-                pid: child.id(),
+                child: child,
                 status: "Running".into(),
                 command: args.join(" "),
             };
+            println!("[{}] {}", job_id_counter, job.child.id());
             jobs.push(job);
-            println!("[{}] {}", job_id_counter, child.id());
-            children.push(child);
             io::stdout().flush().unwrap();
             job_id_counter += 1;
             continue;
         }
 
         // try to reap any finished background jobs
-        let mut i = 0;
-        while i < children.len() {
-            match children[i].try_wait()? {
+        for job in jobs.iter_mut() {
+            match job.child.try_wait()? {
                 Some(_status) => {
-                    let job = &mut jobs[i];
                     job.status = "Done".into();
-                    children.remove(i);
                 }
                 None => {
-                    i += 1;
+                    // still running
                 }
             }
         }
@@ -163,7 +159,7 @@ fn execute(args: &mut Vec<&str>, paths: Vec<&str>, builtins: Vec<&str>, dir: &mu
             Ok(()) => (),
             Err(_e) => println!("cd: {}: No such file or directory", &args[1]),
         },
-        "jobs" => commands::jobs(jobs, &mut stdout_buf, job_id_counter),
+        "jobs" => commands::jobs(jobs, &mut stdout_buf),
         _ => commands::unknown(&args, &paths, &mut stdout_buf, &mut stderr_buf),
     };
 

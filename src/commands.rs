@@ -67,16 +67,16 @@ pub fn cd(args: &Vec<&str>, dir: &mut PathBuf) -> Result<(), Error> {
     }
 }
 
-pub fn jobs(jobs: &mut Vec<Job>, stdout: &mut String, latest_job_id: u32) {
+pub fn jobs(jobs: &mut Vec<Job>, stdout: &mut String) {
     let mut output = String::new();
     let mut marker = " ";
 
     let mut i = 0;
     while i < jobs.len() {
         let job = &jobs[i];
-        if job.id == latest_job_id-1 {
+        if i == jobs.len() - 1 {
             marker = "+";
-        } else if job.id == latest_job_id-2 {
+        } else if i == jobs.len() - 2 {
             marker = "-";
         }
 
