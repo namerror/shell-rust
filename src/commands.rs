@@ -69,12 +69,19 @@ pub fn cd(args: &Vec<&str>, dir: &mut PathBuf) -> Result<(), Error> {
 
 pub fn jobs(jobs: &[Job], stdout: &mut String, latest_job_id: u32) {
     let mut output = String::new();
+    let mut marker = " ";
+
     for job in jobs {
-        if job.id == latest_job_id-1 {
-            output = output + &format!("[{}]+  {:<24}{}\n", job.id, job.status, job.command);
+        if job.id == latest_job_id -1 {
+            marker = "+";
+        } else if job.id == latest_job_id -2 {
+            marker = "-";
         } else {
-            output = output + &format!("[{}]  {:<24}{}\n", job.id, job.status, job.command);
+            marker = " ";
         }
+
+
+        output = output + &format!("[{}]{}  {:<24}{}\n", job.id, marker, job.status, job.command);
     }
     *stdout = output;
 }
