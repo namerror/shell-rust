@@ -28,6 +28,7 @@ fn main() -> io::Result<()> {
 
     let mut jobs: Vec<Job> = Vec::new();
     let mut job_id_counter: u32 = 1;
+    let mut children: Vec<std::process::Child> = Vec::new(); // store the child processes
 
     let mut args = env::args();
     args.next(); // skip the first argument (the program name)
@@ -35,7 +36,7 @@ fn main() -> io::Result<()> {
     // background execution mode
     if args.next().as_deref() == Some("--background") {
         let values = args.collect::<Vec<String>>();
-        execute(&mut values.iter().map(|s| s.as_str()).collect(), paths.clone(), builtins.to_vec(), &mut dir, &jobs, job_id_counter)?;
+        execute(&mut values.iter().map(|s| s.as_str()).collect(), paths.clone(), builtins.to_vec(), &mut dir, &mut jobs, job_id_counter)?;
         return Ok(());
     }
 
@@ -83,20 +84,34 @@ fn main() -> io::Result<()> {
             };
             jobs.push(job);
             println!("[{}] {}", job_id_counter, child.id());
+            children.push(child);
             io::stdout().flush().unwrap();
             job_id_counter += 1;
             continue;
         }
 
-        execute(&mut args, paths.clone(), builtins.to_vec(), &mut dir, &jobs, job_id_counter)?;
+        // try to reap any finished background jobs
+        let mut i = 0;
+        while i < children.len() {
+            match children[i].try_wait()? {
+                Some(_status) => {
+                    let job = &mut jobs[i];
+                    job.status = "Done".into();
+                    children.remove(i);
+                }
+                None => {
+                    i += 1;
+                }
+            }
+        }
 
+        execute(&mut args, paths.clone(), builtins.to_vec(), &mut dir, &mut jobs, job_id_counter)?;
 
     }
-
 }
 
 // this is the function each process will call, also the entry point for background jobs
-fn execute(args: &mut Vec<&str>, paths: Vec<&str>, builtins: Vec<&str>, dir: &mut std::path::PathBuf, jobs: &[Job], job_id_counter: u32) -> io::Result<()> {
+fn execute(args: &mut Vec<&str>, paths: Vec<&str>, builtins: Vec<&str>, dir: &mut std::path::PathBuf, jobs: &mut Vec<Job>, job_id_counter: u32) -> io::Result<()> {
     let stdout = Stdout::Stdout(io::stdout());
     let stderr = Stderr::Stderr(io::stderr());
     let mut stdout_buf = "".to_string();

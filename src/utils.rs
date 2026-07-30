@@ -5,6 +5,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::{env, fs};
 
+#[derive(Clone)]
 pub struct Job {
     pub id: u32,
     pub pid: u32,
