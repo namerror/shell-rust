@@ -67,6 +67,8 @@ fn main() -> io::Result<()> {
             }
         }
 
+        job_id_counter = jobs.last().map_or(0, |job| job.id) + 1; // update job_id_counter to be the next available ID
+
         print!("$ ");
         io::stdout().flush().unwrap(); // uses flush to ensure the prompt is displayed before reading input
         let mut command = String::new();
@@ -110,7 +112,6 @@ fn main() -> io::Result<()> {
             println!("[{}] {}", job_id_counter, job.child.id());
             jobs.push(job);
             io::stdout().flush().unwrap();
-            job_id_counter += 1;
             continue;
         }
 
