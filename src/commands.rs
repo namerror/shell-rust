@@ -67,7 +67,14 @@ pub fn cd(args: &Vec<&str>, dir: &mut PathBuf) -> Result<(), Error> {
     }
 }
 
-pub fn jobs(jobs: &mut Vec<Job>, stdout: &mut String) {
+pub fn jobs(jobs: &mut Vec<Job>, stdout: &mut String) -> Result<(), Error> {
+    // try to reap any finished background jobs
+    for job in jobs.iter_mut() {
+        if let Some(_status) = job.child.try_wait()? {
+            job.status = "Done".to_string();
+        }
+    }
+
     let mut output = String::new();
     let mut marker = " ";
 
@@ -88,4 +95,6 @@ pub fn jobs(jobs: &mut Vec<Job>, stdout: &mut String) {
         }
     }
     *stdout = output;
+
+    Ok(())
 }

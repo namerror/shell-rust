@@ -41,6 +41,31 @@ fn main() -> io::Result<()> {
 
     // main loop
     loop {
+        // try to reap any finished background jobs
+        let mut i = 0;
+        while i < jobs.len() {
+            let mut marker = " ";
+            if i == jobs.len() - 1 {
+                marker = "+";
+            } else if i == jobs.len() - 2 {
+                marker = "-";
+            }
+            let status = jobs[i].child.try_wait()?;
+            match status {
+                Some(_exit_status) => {
+                    let mut job = jobs.remove(i);
+                    job.status = "Done".into();
+                    println!(
+                        "[{}]{} {:<24}{}",
+                        job.id, marker, job.status, job.command
+                    );
+                }
+                None => {
+                    // This job is still running.
+                    i += 1;
+                }
+            }
+        }
 
         print!("$ ");
         io::stdout().flush().unwrap(); // uses flush to ensure the prompt is displayed before reading input
@@ -87,18 +112,6 @@ fn main() -> io::Result<()> {
             io::stdout().flush().unwrap();
             job_id_counter += 1;
             continue;
-        }
-
-        // try to reap any finished background jobs
-        for job in jobs.iter_mut() {
-            match job.child.try_wait()? {
-                Some(_status) => {
-                    job.status = "Done".into();
-                }
-                None => {
-                    // still running
-                }
-            }
         }
 
         execute(&mut args, paths.clone(), builtins.to_vec(), &mut dir, &mut jobs, job_id_counter)?;
@@ -159,7 +172,7 @@ fn execute(args: &mut Vec<&str>, paths: Vec<&str>, builtins: Vec<&str>, dir: &mu
             Ok(()) => (),
             Err(_e) => println!("cd: {}: No such file or directory", &args[1]),
         },
-        "jobs" => commands::jobs(jobs, &mut stdout_buf),
+        "jobs" => commands::jobs(jobs, &mut stdout_buf)?,
         _ => commands::unknown(&args, &paths, &mut stdout_buf, &mut stderr_buf),
     };
 
