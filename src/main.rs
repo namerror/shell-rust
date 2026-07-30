@@ -1,10 +1,10 @@
 use std::env::{self};
-use std::fs::{DirBuilder, File, OpenOptions};
+use std::fs::{File, OpenOptions};
 use std::io::{self, Write};
 use std::print;
 use std::process::Command;
 
-use crate::utils::find_executable;
+use crate::utils::{Job, find_executable};
 
 mod commands;
 mod utils;
@@ -19,10 +19,6 @@ enum Stderr {
     File(File),
 }
 
-struct Job {
-    id: u32,
-    pid: u32,
-}
 
 fn main() -> io::Result<()> {
     let path = env::var("PATH").unwrap();
@@ -39,7 +35,7 @@ fn main() -> io::Result<()> {
     // background execution mode
     if args.next().as_deref() == Some("--background") {
         let values = args.collect::<Vec<String>>();
-        execute(&mut values.iter().map(|s| s.as_str()).collect(), paths.clone(), builtins.to_vec(), &mut dir)?;
+        execute(&mut values.iter().map(|s| s.as_str()).collect(), paths.clone(), builtins.to_vec(), &mut dir, &jobs, job_id_counter)?;
         return Ok(());
     }
 
@@ -82,6 +78,8 @@ fn main() -> io::Result<()> {
             let job = Job {
                 id: job_id_counter,
                 pid: child.id(),
+                status: "Running".into(),
+                command: args.join(" "),
             };
             jobs.push(job);
             println!("[{}] {}", job_id_counter, child.id());
@@ -90,7 +88,7 @@ fn main() -> io::Result<()> {
             continue;
         }
 
-        execute(&mut args, paths.clone(), builtins.to_vec(), &mut dir)?;
+        execute(&mut args, paths.clone(), builtins.to_vec(), &mut dir, &jobs, job_id_counter)?;
 
 
     }
@@ -98,7 +96,7 @@ fn main() -> io::Result<()> {
 }
 
 // this is the function each process will call, also the entry point for background jobs
-fn execute(args: &mut Vec<&str>, paths: Vec<&str>, builtins: Vec<&str>, dir: &mut std::path::PathBuf) -> io::Result<()> {
+fn execute(args: &mut Vec<&str>, paths: Vec<&str>, builtins: Vec<&str>, dir: &mut std::path::PathBuf, jobs: &[Job], job_id_counter: u32) -> io::Result<()> {
     let stdout = Stdout::Stdout(io::stdout());
     let stderr = Stderr::Stderr(io::stderr());
     let mut stdout_buf = "".to_string();
@@ -150,7 +148,7 @@ fn execute(args: &mut Vec<&str>, paths: Vec<&str>, builtins: Vec<&str>, dir: &mu
             Ok(()) => (),
             Err(_e) => println!("cd: {}: No such file or directory", &args[1]),
         },
-        "jobs" => commands::jobs(),
+        "jobs" => commands::jobs(jobs, &mut stdout_buf, job_id_counter),
         _ => commands::unknown(&args, &paths, &mut stdout_buf, &mut stderr_buf),
     };
 

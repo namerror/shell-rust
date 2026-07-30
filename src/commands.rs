@@ -1,3 +1,4 @@
+use crate::utils::Job;
 use crate::utils::find_executable;
 use crate::utils::resolve_path;
 use std::io::{self, Error, Write};
@@ -66,6 +67,14 @@ pub fn cd(args: &Vec<&str>, dir: &mut PathBuf) -> Result<(), Error> {
     }
 }
 
-pub fn jobs() {
-    return // TODO
+pub fn jobs(jobs: &[Job], stdout: &mut String, latest_job_id: u32) {
+    let mut output = String::new();
+    for job in jobs {
+        if job.id == latest_job_id-1 {
+            output = output + &format!("[{}]+  {:<24}{}\n", job.id, job.status, job.command);
+        } else {
+            output = output + &format!("[{}]  {:<24}{}\n", job.id, job.status, job.command);
+        }
+    }
+    *stdout = output;
 }

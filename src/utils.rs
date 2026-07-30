@@ -5,6 +5,13 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::{env, fs};
 
+pub struct Job {
+    pub id: u32,
+    pub pid: u32,
+    pub status: String,
+    pub command: String,
+}
+
 pub fn find_executable(paths: &Vec<&str>, command: &str) -> Result<String, Error> {
     for path in paths {
         for entry in fs::read_dir(path)? {
